@@ -4,6 +4,8 @@ require 'rugged'
 require 'sinatra'
 require 'json'
 require 'thread'
+require 'usagewatch'
+require 'open3'
 
 @language = ''
 @cores = ''
@@ -12,6 +14,9 @@ require 'thread'
 @cloned = false
 @started = false
 @finished = false
+@stdin = ''
+@stdout = ''
+@stderr = ''
 
 before do
 	@req_data = JSON.parse(request.body.read.to_s)
@@ -74,23 +79,54 @@ get '/clone' do
 end
 
 def RunProgram
+	Dir.chdir('./Project')
+	supported_language = ['ruby', 'python', 'python3', 'nodejs', 'perl']
 	#open Requiremwnt file
-	#Check the programming language
-	#install dependency
-	#Run program with argument
-	#Catch STDOUT and STDERR
+	if FILE.exist?('./requrement.json')
+		file_content = FILE.read('./requrement.json')
+		converted = JSON.parse(file_content)
+		#Check the programming language
+		if supported_language.members? converted['language']
+			#install dependency
+			converted['depend'].members.each{ |m|
+				if converted['language'] == 'ruby'
+					#Install dependency using rubygem
+				elsif converted['language'] == 'python'
+					#install using pip
+				elsif converted['language'] == 'python3'
+					#install using pip3
+				elsif converted['language'] == 'nodejs'
+					#install using npm
+				elsif converted['language'] == 'perl'
+					#install using something
+				end
+			}
+			@stdin, @stdout, @stderr, wait_thr = Open3.popen3(converted['language'], converted['execute'], converted['argument'])
+			exit_status = wait_thr.value
+		end
+	end
 	@finished = true;
 end
 
 get '/start' do
 	clone() unless @cloned
 	if @cloned
+		Dir.chdir('/root')
 		t = Thread.new{RunProgram()}
 		@started = true
 		halt 200
 	else
 		halt 401
 	end
+end
+
+get '/output' do
+	content_type :json
+	{'stdout' => @stdout.read, 'stderr' => @stderr.read}.to_json
+end
+
+post '/input' do
+	@stdin.puts(@req_data['input'])
 end
 
 get '/status' do
@@ -101,4 +137,6 @@ end
 get '/usage' do
 	content_type :json
 	#return CPU and RAM usage
+	usw = Usagewatch
+	{'cpu' => usw.uw_cpuused, 'ram' => usw.uw_memused, 'read' => usw.uw_diskioreads, 'write' => usw.uw_diskiowrite}.to_json
 end
