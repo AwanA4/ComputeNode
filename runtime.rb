@@ -1,12 +1,17 @@
+require 'rubygems'
+require 'bundler/setup'
 require 'rugged'
 require 'sinatra'
 require 'json'
+require 'thread'
 
 @language = ''
 @cores = ''
 @ram = ''
 @repo = ''
 @cloned = false
+@started = false
+@finished = false
 
 before do
 	@req_data = JSON.parse(request.body.read.to_s)
@@ -54,7 +59,8 @@ def clone
 	if @repo.nil?
 		return false
 	else
-		Rugged::Repository.clone_at @repo, '/root'
+		Rugged::Repository.clone_at @repo, './Project'
+		@cloned = true
 		return true
 	end
 end
@@ -67,15 +73,32 @@ get '/clone' do
 	end
 end
 
+def RunProgram
+	#open Requiremwnt file
+	#Check the programming language
+	#install dependency
+	#Run program with argument
+	#Catch STDOUT and STDERR
+	@finished = true;
+end
+
 get '/start' do
-	if not @cloned
-		if	clone()
-			#start the program
-			#Catch the STDOUT and STDERR
-			#Detach so program can return
-			halt 200
-		else
-			halt 401
-		end
+	clone() unless @cloned
+	if @cloned
+		t = Thread.new{RunProgram()}
+		@started = true
+		halt 200
+	else
+		halt 401
 	end
+end
+
+get '/status' do
+	content_type :json
+	{'started' => @started, 'finished' => @finished}.to_json
+end
+
+get '/usage' do
+	content_type :json
+	#return CPU and RAM usage
 end
