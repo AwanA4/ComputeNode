@@ -187,5 +187,5 @@ get '/usage' do
 	content_type :json
 	#return CPU and RAM usage
 	usw = Usagewatch
-	{'cpu' => usw.uw_cpuused, 'ram' => usw.uw_memused, 'read' => usw.uw_diskioreads, 'write' => usw.uw_diskiowrite}.to_json
+	{'cpu' => usw.uw_cpuused, 'ram' => usw.uw_memused, 'read' => usw.uw_diskioreads, 'write' => usw.uw_diskiowrites}.to_json
 end
