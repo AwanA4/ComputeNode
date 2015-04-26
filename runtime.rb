@@ -7,65 +7,72 @@ require 'thread'
 require 'usagewatch'
 require 'open3'
 
-@language = ''
-@cores = ''
-@ram = ''
-@repo = ''
-@cloned = false
-@started = false
-@finished = false
-@stdin = ''
-@stdout = ''
-@stderr = ''
+$language = ''
+$cores = ''
+$ram = ''
+$repo = ''
+$cloned = false
+$started = false
+$finished = false
+$stdin
+$stdout
+$stderr
 
 before do
-	@req_data = JSON.parse(request.body.read.to_s)
+	next unless request.post?
+	request.body.rewind
+	$req_data = JSON.parse(request.body.read)
 end
 
 get '/language' do
 	content_type :json
-	{'language' => @language}.to_json
+	{'language' => $language}.to_json
 end
 
 get '/cores' do
 	content_type :json
-	{'cores' => @cores}.to_json
+	{'cores' => $cores}.to_json
 end
 
 get '/ram' do
 	content_type :json
-	{'ram' => @ram}.to_json
+	{'ram' => $ram}.to_json
 end
 
 get '/spec' do
 	content_type :json
-	{'cores' => @cores, 'ram' => @ram, 'language' => @language}.to_json
+	{'cores' => $cores, 'ram' => $ram, 'language' => $language}.to_json
 end
 
 get '/repo' do
 	content_type :json
-	{'repo' => @repo}.to_json
+	{'repo' => $repo}.to_json
 end
 
 post '/spec' do
-	@language = @req_data.['language']
-	@cores = @req_data.['cores']
-	@ram = @req_data.['ram']
+	$language = $req_data['language']
+	$cores = $req_data['cores']
+	$ram = $req_data['ram']
 	halt 200
 end
 
 post '/repo' do
-	@repo = @req_data.['repo']
+	#request.body.rewind
+	#$req_data = JSON.parse(request.body.read)
+	$repo = $req_data['repo']
+	content_type :json
+	puts $req_data
+	{'repo' => $req_data}.to_json
 	halt 200
 end
 
 def clone
 	#Clone the repository to computer
-	if @repo.nil?
+	if $repo.nil?
 		return false
 	else
-		Rugged::Repository.clone_at @repo, './Project'
-		@cloned = true
+		Rugged::Repository.clone_at $repo, './Project'
+		$cloned = true
 		return true
 	end
 end
@@ -88,32 +95,37 @@ def RunProgram
 		#Check the programming language
 		if supported_language.members? converted['language']
 			#install dependency
-			converted['depend'].members.each{ |m|
+			converted['depend'].each{ |m|
 				if converted['language'] == 'ruby'
 					#Install dependency using rubygem
+					`gem install #{m}`
 				elsif converted['language'] == 'python'
 					#install using pip
+					`pip install #{m}`
 				elsif converted['language'] == 'python3'
 					#install using pip3
+					`pip3 install #{m}`
 				elsif converted['language'] == 'nodejs'
 					#install using npm
+					`npm install #{m}`
 				elsif converted['language'] == 'perl'
 					#install using something
+					`cpan #{m}`
 				end
 			}
-			@stdin, @stdout, @stderr, wait_thr = Open3.popen3(converted['language'], converted['execute'], converted['argument'])
+			$stdin, $stdout, $stderr, wait_thr = Open3.popen3(converted['language'], converted['execute'], converted['argument'])
 			exit_status = wait_thr.value
 		end
 	end
-	@finished = true;
+	$finished = true;
 end
 
 get '/start' do
-	clone() unless @cloned
-	if @cloned
+	clone() unless $cloned
+	if $cloned
 		Dir.chdir('/root')
 		t = Thread.new{RunProgram()}
-		@started = true
+		$started = true
 		halt 200
 	else
 		halt 401
@@ -122,16 +134,16 @@ end
 
 get '/output' do
 	content_type :json
-	{'stdout' => @stdout.read, 'stderr' => @stderr.read}.to_json
+	{'stdout' => $stdout.read, 'stderr' => $stderr.read}.to_json
 end
 
 post '/input' do
-	@stdin.puts(@req_data['input'])
+	$stdin.puts($req_data['input'])
 end
 
 get '/status' do
 	content_type :json
-	{'started' => @started, 'finished' => @finished}.to_json
+	{'started' => $started, 'finished' => $finished}.to_json
 end
 
 get '/usage' do
