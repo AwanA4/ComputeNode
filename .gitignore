@@ -1,3 +1,6 @@
+stdout.txt
+stderr.txt
+
 *.gem
 *.rbc
 /.config
