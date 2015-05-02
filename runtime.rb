@@ -155,7 +155,10 @@ get '/output' do
 		stdout_file.close
 		stderr_file.close
 		content_type :json
-		{'stdout' => stdout_now, 'stderr' => stderr_now}.to_json
+		{
+			'stdout' => stdout_now,
+			'stderr' => stderr_now
+		}.to_json
 	end
 end
 
@@ -170,7 +173,10 @@ get '/all_output' do
 		all_stdout.close
 		all_stderr.close
 		content_type :json
-		{'stdout' => File.read('../stdout.txt'), 'stderr' => File.read('../stderr.txt')}.to_json
+		{
+			'stdout' => File.read('../stdout.txt'),
+			'stderr' => File.read('../stderr.txt')
+		}.to_json
 	end
 end
 
@@ -180,12 +186,28 @@ end
 
 get '/status' do
 	content_type :json
-	{'started' => $started, 'finished' => $finished}.to_json
+	{
+		'started' => $started,
+		'finished' => $finished
+	}.to_json
 end
 
 get '/usage' do
 	content_type :json
 	#return CPU and RAM usage
 	usw = Usagewatch
-	{'cpu' => usw.uw_cpuused, 'ram' => usw.uw_memused, 'read' => usw.uw_diskioreads, 'write' => usw.uw_diskiowrites}.to_json
+	{
+		'cpu' => usw.uw_cpuused,
+		'ram' => usw.uw_memused,
+		'read' => usw.uw_diskioreads,
+		'write' => usw.uw_diskiowrites
+	}.to_json
+end
+
+post '/stop' do
+	$finished = $req_data[:stop]
+	content_type :json
+	{
+		"stopped" => $finished
+	}.to_json
 end
