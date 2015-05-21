@@ -8,6 +8,7 @@ require 'usagewatch'
 require 'open3'
 
 configure { set :server, :puma }
+configure { enable :logging, :dump_errors, :raise_errors}
 
 $language = ''
 $cores = ''
@@ -76,9 +77,14 @@ def clone
 		return false
 	else
 		Rugged::Repository.clone_at $repo, './Project'
+#		`git clone #{$repo} ./Project`
 		$cloned = true
-		return true
 	end
+rescue Rugged::Error => e
+	p e
+	$finished = true
+ensure
+	return true
 end
 
 get '/clone' do
@@ -123,8 +129,15 @@ def run_program
 			$stdin, $stdout, $stderr, wait_thr = Open3.popen3(converted['language'], converted['execute'], program_argument)
 			$started = true
 			exit_status = wait_thr.value
+		else
+			puts "Programming language not supported"
 		end
+	else
+		puts "Requirement file not present"
 	end
+rescue => e
+	p e
+ensure
 	$finished = true;
 end
 
